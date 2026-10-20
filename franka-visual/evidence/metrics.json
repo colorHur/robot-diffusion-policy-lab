@@ -1,0 +1,68 @@
+{
+  "bc": {
+    "success_rates_by_training_seed": [
+      0.99,
+      0.98,
+      0.96
+    ],
+    "noise_success_rates": {
+      "7": {
+        "0": 0.99
+      },
+      "17": {
+        "0": 0.98
+      },
+      "27": {
+        "0": 0.96
+      }
+    },
+    "parameters": [
+      12329639,
+      12329639,
+      12329639
+    ],
+    "training_seconds": 961.4247375960003,
+    "peak_reserved_bytes": 413138944,
+    "replanning_mean_ms": 3.8902725466606207,
+    "replanning_p95_ms": 4.568591650149756,
+    "policy_amortized_ms_per_action": 3.8902725466606207,
+    "camera_inclusive_episode_wall_seconds": 327.92475033000846,
+    "errors": 0
+  },
+  "diffusion_policy": {
+    "success_rates_by_training_seed": [
+      0.99,
+      0.9766666666666666,
+      0.9966666666666666
+    ],
+    "noise_success_rates": {
+      "7": {
+        "0": 0.99,
+        "1000000": 0.99,
+        "2000000": 0.99
+      },
+      "17": {
+        "0": 0.98,
+        "1000000": 0.96,
+        "2000000": 0.99
+      },
+      "27": {
+        "0": 1.0,
+        "1000000": 1.0,
+        "2000000": 0.99
+      }
+    },
+    "parameters": [
+      78508967,
+      78508967,
+      78508967
+    ],
+    "training_seconds": 3866.6045616469996,
+    "peak_reserved_bytes": 2139095040,
+    "replanning_mean_ms": 62.96822148526293,
+    "replanning_p95_ms": 70.26013890008471,
+    "policy_amortized_ms_per_action": 9.197101061206489,
+    "camera_inclusive_episode_wall_seconds": 1013.2217223240259,
+    "errors": 0
+  }
+}

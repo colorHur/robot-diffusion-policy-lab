@@ -1,0 +1,16 @@
+{
+  "frames": 9666,
+  "episodes": 200,
+  "train_episodes": 180,
+  "valid_episodes": 20,
+  "source_sha256": "2067777cb8b532e9263dd09fd6448c41cc31224bb27be4a3b734010ae13eb540",
+  "visual_sha256": "9c2cabb99140ea876c71d475ca8820ab637928a69d2f2dec3d662f0242c95177",
+  "max_proprio_absolute_errors": {
+    "robot0_eef_pos": 6.661338147750939e-16,
+    "robot0_eef_quat": 1.1102230246251565e-15,
+    "robot0_gripper_qpos": 0.0
+  },
+  "reviewed_sample_images": 12,
+  "RGB_layout": "uint8 HWC stored; CHW float32/255 policy processing",
+  "object_truth_policy_input": false
+}

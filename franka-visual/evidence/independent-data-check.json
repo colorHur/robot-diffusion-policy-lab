@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "episodes": 200,
+  "frames": 9666,
+  "all_actions_and_proprio_exactly_match_source": true,
+  "policy_observation_keys_exclude_object_truth": true,
+  "train_valid_masks_exactly_match_source": true,
+  "minimum_frame_pixel_standard_deviation": 52.131568686233436,
+  "scope": "independent HDF5 check, supplements earlier state-restoration and visual inspection"
+}

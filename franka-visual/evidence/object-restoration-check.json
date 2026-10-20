@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "frames": 9666,
+  "episodes": 200,
+  "max_object_observation_absolute_error": 6.661338147750939e-16,
+  "execution": "CPU-only restoration during already budgeted run interval; no policy execution or GPU rendering",
+  "scope": "object truth is diagnostic only; not stored in derived policy observations"
+}

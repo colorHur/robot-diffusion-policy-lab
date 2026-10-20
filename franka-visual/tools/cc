@@ -1,0 +1,8 @@
+#!/bin/bash
+# CPython adds this GNU ld flag; Zig's linker rejects it. These extensions
+# link no static archives, so excluding static archive symbols is inapplicable.
+args=()
+for arg in "$@"; do
+    if [[ "$arg" != "-Wl,--exclude-libs,ALL" ]]; then args+=("$arg"); fi
+done
+exec "${FRANKA_PROJECT_ROOT:?set FRANKA_PROJECT_ROOT to this project directory}/.venv/lib/python3.11/site-packages/ziglang/zig" cc "${args[@]}"

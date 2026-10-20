@@ -41,3 +41,7 @@ After verifying the full experiment, move to a standard manipulation benchmark s
 ## 三维Panda Lift阶段归档（2026-10-20）
 
 [franka-sim/](franka-sim/README.md)包含独立三维仿真实验源码、固定协议、结果、生成视频与后续学习记录。BC89.67%、动作扩散96.67%，100个共同测试任务；详情及局限见该目录。此分支仅新增本轮三维归档，未将其他本地二维未提交实验批量上传。
+
+## 视觉Panda Lift阶段归档（2026-10-21）
+
+[franka-visual/](franka-visual/README.md)为RGB＋9维本体输入的独立视觉阶段。BC97.67%、扩散98.78%；差1.11个百分点、95%区间[-0.44,+3.00]，不足以确认优势。原低维[franka-sim/](franka-sim/README.md)完整保留；两轮最终任务不同，不能直接归因图像增益。开发过程、原始冻结源码和发布修复分开留证。

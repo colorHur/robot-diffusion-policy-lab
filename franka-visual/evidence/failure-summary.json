@@ -1,0 +1,26 @@
+{
+  "bc": {
+    "failure_replays": 31,
+    "unique_failed_tasks": 26,
+    "label_counts": {
+      "no_close_approach": 7,
+      "lateral_displacement": 7,
+      "limited_vertical_displacement": 31,
+      "near_with_closing_command": 18,
+      "undetermined_mechanism": 31
+    },
+    "warning": "counts are descriptive; diffusion has 3 noise repeats, BC has 1"
+  },
+  "diffusion_policy": {
+    "failure_replays": 30,
+    "unique_failed_tasks": 21,
+    "label_counts": {
+      "no_close_approach": 0,
+      "lateral_displacement": 21,
+      "limited_vertical_displacement": 30,
+      "near_with_closing_command": 30,
+      "undetermined_mechanism": 30
+    },
+    "warning": "counts are descriptive; diffusion has 3 noise repeats, BC has 1"
+  }
+}
