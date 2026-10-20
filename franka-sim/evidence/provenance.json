@@ -1,0 +1,29 @@
+{
+  "experiment": "panda-study-20261020",
+  "frozen_source_sha256": {
+    "scripts/audit_smoke.py": "d15e0b3212ce88aec4f515611ee6dd059340ad9a1e384c656d11501371ae0dc3",
+    "scripts/checkpoint_rollouts.py": "5caa699f27eff570e51009dfd185e76134f0479dbd8fd043d3db069ece52c34b",
+    "scripts/download_lift.py": "fd48dd838368f52966102b849729c57f400644735cfd5f1df2e36303f7e6a9f1",
+    "scripts/probe_sim.py": "c81d0acf576e2ef904d3ca634bf853f0e5b33ec0aa68bbf8b78c57f6af8fa6b7",
+    "scripts/render_compat.py": "8f174f903567f5a9c544af83532c9e146a2d26406f8af340c76d9d5031adfb6e",
+    "scripts/run_bc.py": "1b9b2fdf229d8d4436971e9e452a436f813d7d8627967b6bb98c29cec2510524",
+    "scripts/study.py": "a81520ecc684c57bba6cef6dd7dfca279100261435c76fa16f45524d0e515979",
+    "scripts/study_audit.py": "3977598386a0d2f0b209b98dead9f684860316645226854aeb4734b4ae4f1c2d",
+    "sim": "75a7020da926d30fca2f7a19e44e4f15cda701c5ddc2ef05322b53746d9416ad",
+    "requirements-lock.txt": "1b7b2f26a40f69b9574089397eff95f4ab6190e7ce050550d7b27aab64c74834",
+    "configs/STUDY-PLAN.md": "aa5adc8eef596845132af499ee4542ceb64a88b5e719bc4f2195decd53442c81",
+    "tests/test_study.py": "efa64c400aa28de7b2093442a9fde1064c4e71a1232cde75a10d905d6b677835"
+  },
+  "upstream_pins": {
+    "robomimic": "d309eaecc18acf4152a830a895a6984b8ac71b05",
+    "robosuite": "a071383d53568ab798eb315c0e95357911be922d"
+  },
+  "dataset_sha256": "2067777cb8b532e9263dd09fd6448c41cc31224bb27be4a3b734010ae13eb540",
+  "scope": "Source-byte identity checked against local experiment manifest. Raw trajectories and checkpoints remain local; this is not third-party replication.",
+  "public_adaptations": [
+    "README and result/learning documentation adapted for repository navigation",
+    "tools compiler wrappers use FRANKA_PROJECT_ROOT instead of local absolute path",
+    "configs/bc-smoke.json uses relative paths; not part of formal source hash",
+    "local delivery report generator omitted; experiment and latency runner source preserved byte-for-byte"
+  ]
+}

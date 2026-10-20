@@ -1,0 +1,3 @@
+#!/bin/sh
+# egl_probe hardcodes "make -j"; use its CMake-generated Ninja build locally.
+exec "${FRANKA_PROJECT_ROOT:?set FRANKA_PROJECT_ROOT to this project directory}/.venv/bin/cmake" --build . --parallel 2

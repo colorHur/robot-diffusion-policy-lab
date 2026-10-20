@@ -1,0 +1,12 @@
+.venv/
+.cache/
+.pytest_cache/
+__pycache__/
+*.pyc
+vendor/
+data/
+runs/
+*.pth
+*.pt
+*.hdf5
+requirements-install.txt

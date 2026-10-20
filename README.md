@@ -36,3 +36,8 @@ The sequence interface follows the observation, prediction, and action horizon d
 
 After verifying the full experiment, move to a standard manipulation benchmark such as PushT or a LeRobot dataset. Keep the BC comparison and held-out closed-loop evaluation. This project deliberately starts with a dependency-light simulator so the methodology can be checked on a CPU before moving to a heavier benchmark.
 
+
+
+## 三维Panda Lift阶段归档（2026-10-20）
+
+[franka-sim/](franka-sim/README.md)包含独立三维仿真实验源码、固定协议、结果、生成视频与后续学习记录。BC89.67%、动作扩散96.67%，100个共同测试任务；详情及局限见该目录。此分支仅新增本轮三维归档，未将其他本地二维未提交实验批量上传。

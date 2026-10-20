@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "${FRANKA_PROJECT_ROOT:?set FRANKA_PROJECT_ROOT to this project directory}/.venv/lib/python3.11/site-packages/ziglang/zig" c++ "$@"
