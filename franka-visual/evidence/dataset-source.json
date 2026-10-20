@@ -1,0 +1,8 @@
+{
+  "repo": "robomimic/robomimic_datasets",
+  "revision": "74fa018461f479cd9fd15b924a16103012096203",
+  "path": "v1.5/lift/ph/low_dim_v15.hdf5",
+  "url": "https://huggingface.co/datasets/robomimic/robomimic_datasets/resolve/74fa018461f479cd9fd15b924a16103012096203/v1.5/lift/ph/low_dim_v15.hdf5",
+  "bytes": 21084088,
+  "sha256": "2067777cb8b532e9263dd09fd6448c41cc31224bb27be4a3b734010ae13eb540"
+}

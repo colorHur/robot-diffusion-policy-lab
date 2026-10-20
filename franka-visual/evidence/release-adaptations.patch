@@ -1,0 +1,185 @@
+--- frozen/scripts/visual_study.py
++++ scripts/visual_study.py
+@@ -269,8 +269,8 @@
+     finally:close_env(env)
+     result={'passed':True,'kind':a.kind,'batch':a.batch,'pilot_updates':60,'train_seconds_per_update':train_seconds,'full400_episode_seconds':wall,'peak_reserved_bytes':peak,'architecture':architecture,'pilot_last_log':log,'inference_record':rec,'temporary_checkpoint_sha256':digest(p)}
+     write(a.out/'result.json',result);print(json.dumps(result),flush=True)
+-    # Keep the receipt and logs; discard only explicitly disposable pilot weights.
+-    p.unlink()
++    # Release-only fix: retain isolated pilot checkpoint and identity receipts.
++    assert p.is_file()
+ 
+ def child(root,command,log,deadline=None):
+     remaining=deadline-time.time() if deadline else None
+@@ -460,6 +460,9 @@
+     p.add_argument('--out',type=Path,required=True);p.add_argument('--preflight',type=Path)
+     p.add_argument('--kind',choices=['bc','diffusion_policy']);p.add_argument('--batch',type=int)
+     p.add_argument('--updates',type=int);p.add_argument('--seed',type=int);p.add_argument('--checkpoint',type=Path)
++    history=p.add_mutually_exclusive_group()
++    history.add_argument('--history',type=Path,help='local historical low-dimensional run for saved-state diagnostics')
++    history.add_argument('--skip-historical-diagnostics',action='store_true',help='explicitly skip private historical trajectories for a new replication; recorded in preparation receipt')
+     p.add_argument('--reviewed-samples',action='store_true',help='record that the 12 prepared sample images were visually inspected before preflight')
+     p.add_argument('--tasks',type=Path);p.add_argument('--offsets',type=int,nargs='+',default=[0])
+     a=p.parse_args();a.out=a.out.resolve()
+@@ -475,7 +478,7 @@
+     try:
+         if a.command=='prepare':
+             from visual_prepare import prepare
+-            prepare(a.out)
++            prepare(a.out,history=a.history,skip_history=a.skip_historical_diagnostics)
+         elif a.command=='preflight':
+             if a.reviewed_samples:
+                 result=read(PREP/'result.json');manifest=read(PREP/'data-manifest.json');samples=manifest['samples']
+@@ -492,7 +495,7 @@
+             from visual_audit import audit
+             audit(a.out)
+     except BaseException as exc:
+-        if a.out.exists():
++        if a.out.exists() and a.command!='audit':
+             write(a.out/'failure.json',{'error':repr(exc),'traceback':traceback.format_exc(),'machine_seconds':time.monotonic()-started,'formal_complete':False})
+             if a.command=='run':
+                 status=read(a.out/'status.json') if (a.out/'status.json').exists() else {}
+--- frozen/scripts/visual_prepare.py
++++ scripts/visual_prepare.py
+@@ -5,63 +5,68 @@
+ import h5py
+ from PIL import Image
+ 
+-def prepare(out):
++def prepare(out,history=None,skip_history=False):
+     import visual_study as v
+     import study as old
++    history=Path(history).resolve() if history is not None else v.ROOT/'runs/panda-study-20261020'
++    if not skip_history and not history.is_dir():
++        raise FileNotFoundError('Historical raw trajectories are not distributed. Supply --history PATH or explicitly use --skip-historical-diagnostics for a new replication.')
+     out=Path(out);v.fresh(out);started=time.monotonic()
+     signal.signal(signal.SIGALRM,lambda *_: (_ for _ in ()).throw(TimeoutError('preparation machine budget exhausted')))
+     signal.alarm(8*3600)
+     assert v.digest(v.SOURCE_DATA)==v.DATA_SHA
+     v.setup();v.seed_all(7)
+     # Register only low dimensional observations for diagnostic restoration.
+-    c=old.config('bc',8,10000,7);env=old.new_env(c,render=True)
+-    history=v.ROOT/'runs/panda-study-20261020'
+-    rules={'schema_version':1,'scope':'observations from saved states, not causal contact/grasp labels',
+-           'thresholds_m':{'near_eef_cube':0.04,'lateral_displacement':0.03,'small_vertical_displacement':0.02},
+-           'labels':['no_close_approach','lateral_displacement','limited_vertical_displacement','near_with_closing_command','undetermined_mechanism'],
+-           'definitions':{'no_close_approach':'minimum eef-to-cube distance > 4cm','lateral_displacement':'maximum XY cube displacement from initial > 3cm','limited_vertical_displacement':'maximum cube z displacement < 2cm','near_with_closing_command':'distance <=4cm and commanded gripper action >0; does not prove contact or grasp','undetermined_mechanism':'physical cause/contact stability is not inferred from these metrics'}}
+-    def pick(paths,n):return sorted(paths,key=lambda p:str(p.relative_to(history)))[:n]
+-    val=pick([p for p in (history/'validation').glob('*/*/record-*.json') if not v.read(p)['success']],12)
+-    failures=pick([p for p in (history/'test').glob('*/record-*.json') if not v.read(p)['success']],10000)
+-    successes=pick([p for p in (history/'test').glob('*/record-*.json') if v.read(p)['success']],12)
+-    assert len(val)==12 and len(failures)==61 and len(successes)==12
+-    (out/'diagnostics').mkdir();(out/'diagnostics/frames').mkdir()
+-    def classify(paths,group):
+-        result=[]
+-        for number,p in enumerate(paths):
+-            rec=v.read(p);task=rec['task'];offset=rec['noise_offset'];initial=v.read(history/('validation-tasks' if group=='pilot' else 'test-tasks')/f'{task}.json')
+-            trajectory=p.with_name(f'trajectory-{task}-{offset}.npz')
+-            with np.load(trajectory) as z:states=z['states'];actions=z['actions']
+-            env.reset_to(old.state_native(initial));xyz=[];dist=[]
+-            for state in states:
+-                obs=env.reset_to({'states':state})
+-                assert np.array_equal(env.get_state()['states'],state)
+-                xyz.append(obs['object'][:3]);dist.append(np.linalg.norm(obs['object'][:3]-obs['robot0_eef_pos']))
+-            xyz=np.asarray(xyz);dist=np.asarray(dist);lateral=np.linalg.norm(xyz[:,:2]-xyz[0,:2],axis=1);lift=xyz[:,2]-xyz[0,2]
+-            labels=['undetermined_mechanism']
+-            if dist.min()>0.04:labels.append('no_close_approach')
+-            if lateral.max()>0.03:labels.append('lateral_displacement')
+-            if lift.max()<0.02:labels.append('limited_vertical_displacement')
+-            if len(actions) and np.any((dist[:-1]<=0.04)&(actions[:,6]>0)):labels.append('near_with_closing_command')
+-            evidence=[]
+-            for i in sorted({0,int(dist.argmin()),int(lift.argmax()),len(states)-1}):
+-                env.reset_to({'states':states[i]});before=env.get_state()['states'].copy()
+-                im=env.render(mode='rgb_array',height=256,width=256,camera_name='agentview');assert np.array_equal(before,env.get_state()['states'])
+-                name=f'diagnostics/frames/{group}-{number:03d}-{i:03d}.png';Image.fromarray(im).save(out/name);evidence.append({'frame':i,'image':name})
+-            model_key=p.parent.name if group!='pilot' else p.parent.parent.name
+-            model_sha=v.read(history/'selection-frozen.json')[model_key]['selected']['sha256'] if group!='pilot' else v.digest(history/'models'/model_key/(p.parent.name+'.pth'))
+-            result.append({'source_record':str(p.relative_to(v.ROOT)),'record_sha256':v.digest(p),'trajectory_sha256':v.digest(trajectory),'model_key':model_key,'checkpoint_sha256':model_sha,'task':task,'offset':offset,'success':rec['success'],'labels':labels,'min_eef_cube_distance_m':float(dist.min()),'max_cube_xy_displacement_m':float(lateral.max()),'max_cube_z_displacement_m':float(lift.max()),'evidence':evidence,'hypothesis':'undetermined; commanded closing and proximity do not establish contact/grasp'})
+-            print('diagnostic',group,number+1,len(paths),flush=True)
+-        v.write(out/'diagnostics'/f'{group}.json',result);return result
+-    try:
+-        pilot=classify(val,'pilot');v.write(out/'diagnostics/taxonomy-frozen.json',{'rules':rules,'pilot_records':[x['source_record'] for x in pilot],'pilot_sha256':v.digest(out/'diagnostics/pilot.json'),'frozen_before_test_labels':True})
+-        fail=classify(failures,'failures');success=classify(successes,'successes')
+-        summary={}
+-        for kind in ('bc','diffusion_policy'):
+-            rows=[r for r in fail if r['model_key'].startswith(kind+'-')]
+-            summary[kind]={'failure_replays':len(rows),'unique_failed_tasks':len({r['task'] for r in rows}),'label_counts':{label:sum(label in r['labels'] for r in rows) for label in rules['labels']},'warning':'counts are descriptive; diffusion has 3 noise repeats, BC has 1'}
+-        v.write(out/'diagnostics/summary.json',summary)
+-    finally:old.close_env(env)
++    if skip_history:
++        v.write(out/'diagnostics/status.json',{'state':'explicitly_skipped','reason':'private historical trajectories are unavailable; not a reproduction of the historical diagnostic stage'})
++    else:
++        c=old.config('bc',8,10000,7);env=old.new_env(c,render=True)
++        rules={'schema_version':1,'scope':'observations from saved states, not causal contact/grasp labels',
++               'thresholds_m':{'near_eef_cube':0.04,'lateral_displacement':0.03,'small_vertical_displacement':0.02},
++               'labels':['no_close_approach','lateral_displacement','limited_vertical_displacement','near_with_closing_command','undetermined_mechanism'],
++               'definitions':{'no_close_approach':'minimum eef-to-cube distance > 4cm','lateral_displacement':'maximum XY cube displacement from initial > 3cm','limited_vertical_displacement':'maximum cube z displacement < 2cm','near_with_closing_command':'distance <=4cm and commanded gripper action >0; does not prove contact or grasp','undetermined_mechanism':'physical cause/contact stability is not inferred from these metrics'}}
++        def pick(paths,n):return sorted(paths,key=lambda p:str(p.relative_to(history)))[:n]
++        val=pick([p for p in (history/'validation').glob('*/*/record-*.json') if not v.read(p)['success']],12)
++        failures=pick([p for p in (history/'test').glob('*/record-*.json') if not v.read(p)['success']],10000)
++        successes=pick([p for p in (history/'test').glob('*/record-*.json') if v.read(p)['success']],12)
++        assert len(val)==12 and len(failures)==61 and len(successes)==12
++        (out/'diagnostics').mkdir();(out/'diagnostics/frames').mkdir()
++        def classify(paths,group):
++            result=[]
++            for number,p in enumerate(paths):
++                rec=v.read(p);task=rec['task'];offset=rec['noise_offset'];initial=v.read(history/('validation-tasks' if group=='pilot' else 'test-tasks')/f'{task}.json')
++                trajectory=p.with_name(f'trajectory-{task}-{offset}.npz')
++                with np.load(trajectory) as z:states=z['states'];actions=z['actions']
++                env.reset_to(old.state_native(initial));xyz=[];dist=[]
++                for state in states:
++                    obs=env.reset_to({'states':state})
++                    assert np.array_equal(env.get_state()['states'],state)
++                    xyz.append(obs['object'][:3]);dist.append(np.linalg.norm(obs['object'][:3]-obs['robot0_eef_pos']))
++                xyz=np.asarray(xyz);dist=np.asarray(dist);lateral=np.linalg.norm(xyz[:,:2]-xyz[0,:2],axis=1);lift=xyz[:,2]-xyz[0,2]
++                labels=['undetermined_mechanism']
++                if dist.min()>0.04:labels.append('no_close_approach')
++                if lateral.max()>0.03:labels.append('lateral_displacement')
++                if lift.max()<0.02:labels.append('limited_vertical_displacement')
++                if len(actions) and np.any((dist[:-1]<=0.04)&(actions[:,6]>0)):labels.append('near_with_closing_command')
++                evidence=[]
++                for i in sorted({0,int(dist.argmin()),int(lift.argmax()),len(states)-1}):
++                    env.reset_to({'states':states[i]});before=env.get_state()['states'].copy()
++                    im=env.render(mode='rgb_array',height=256,width=256,camera_name='agentview');assert np.array_equal(before,env.get_state()['states'])
++                    name=f'diagnostics/frames/{group}-{number:03d}-{i:03d}.png';Image.fromarray(im).save(out/name);evidence.append({'frame':i,'image':name})
++                model_key=p.parent.name if group!='pilot' else p.parent.parent.name
++                model_sha=v.read(history/'selection-frozen.json')[model_key]['selected']['sha256'] if group!='pilot' else v.digest(history/'models'/model_key/(p.parent.name+'.pth'))
++                result.append({'source_record':str(p.relative_to(history)),'record_sha256':v.digest(p),'trajectory_sha256':v.digest(trajectory),'model_key':model_key,'checkpoint_sha256':model_sha,'task':task,'offset':offset,'success':rec['success'],'labels':labels,'min_eef_cube_distance_m':float(dist.min()),'max_cube_xy_displacement_m':float(lateral.max()),'max_cube_z_displacement_m':float(lift.max()),'evidence':evidence,'hypothesis':'undetermined; commanded closing and proximity do not establish contact/grasp'})
++                print('diagnostic',group,number+1,len(paths),flush=True)
++            v.write(out/'diagnostics'/f'{group}.json',result);return result
++        try:
++            pilot=classify(val,'pilot');v.write(out/'diagnostics/taxonomy-frozen.json',{'rules':rules,'pilot_records':[x['source_record'] for x in pilot],'pilot_sha256':v.digest(out/'diagnostics/pilot.json'),'frozen_before_test_labels':True})
++            fail=classify(failures,'failures');success=classify(successes,'successes')
++            summary={}
++            for kind in ('bc','diffusion_policy'):
++                rows=[r for r in fail if r['model_key'].startswith(kind+'-')]
++                summary[kind]={'failure_replays':len(rows),'unique_failed_tasks':len({r['task'] for r in rows}),'label_counts':{label:sum(label in r['labels'] for r in rows) for label in rules['labels']},'warning':'counts are descriptive; diffusion has 3 noise repeats, BC has 1'}
++            v.write(out/'diagnostics/summary.json',summary)
++        finally:old.close_env(env)
+     # Derived file deliberately excludes object truth, raw simulator states and next_obs.
+     c=v.config('bc',8,10000,7);env=v.new_env(c,render=True);samples=[];max_errors={k:0. for k in v.LOW_KEYS};render_seconds=0.;frames=0
+     (out/'samples').mkdir();xml_manifest={}
+@@ -99,5 +104,5 @@
+                 dst.flush();print('rendered',name,n,'total',frames,flush=True)
+             assert frames==9666
+         v.write(out/'data-manifest.json',{'source_sha256':v.DATA_SHA,'camera':'agentview','shape_hwc':[84,84,3],'dtype':'uint8','policy_scaling':'upstream robomimic RGB processing uint8->float32 CHW /255 exactly once','episodes':xml_manifest,'samples':samples,'max_observation_errors':max_errors,'code_sha256':v.sources(),'render_seconds':render_seconds,'frames':frames})
+-        v.write(out/'result.json',{'passed':True,'visually_verified':False,'machine_seconds':time.monotonic()-started,'visual_sha256':v.digest(out/'visual.hdf5'),'source_sha256':v.DATA_SHA,'frames':frames,'sample_images':samples,'message':'numerical gates passed; sample images require visual review before preflight'})
++        v.write(out/'result.json',{'passed':True,'historical_run':None if skip_history else str(history),'historical_diagnostics':'explicitly_skipped' if skip_history else 'completed','visually_verified':False,'machine_seconds':time.monotonic()-started,'visual_sha256':v.digest(out/'visual.hdf5'),'source_sha256':v.DATA_SHA,'frames':frames,'sample_images':samples,'message':'numerical gates passed; sample images require visual review before preflight'})
+     finally:v.close_env(env);signal.alarm(0)
+--- frozen/configs/VISUAL-STUDY-PLAN.md
++++ configs/VISUAL-STUDY-PLAN.md
+@@ -6,10 +6,12 @@
+ 
+ Before training: restore and label 12 old validation failures, freeze observable taxonomy, inspect all 61 old test failures plus first 12 successes in lexicographic source-record order. Report hypotheses as unknown when not supported; proximity/close command is not evidence of grasp. Diagnostics only restore saved states, never execute policy or physics steps. Save source identities and representative frames. Check all 200 demonstration alignments and split identity, raw-vs-restored 9D observations at absolute tolerance 1e-5, image orientation and rendering state invariance. Review first/middle/last images from first two numeric episodes in each split. No automatic bypass of a failed gate.
+ 
+-Preflight: 60 disposable updates per method, first 30 warmup and last 30 timed, exact checkpoint/EMA reload, full 400-step old smoke task17. Batch32/16/8 in order; only OOM or >4.5GiB PyTorch reserved memory allows smaller batch. Temporary checkpoint removed after identity receipt. Forecast all six models, all 600 candidate validation episodes, BC300+DP900 final episodes using full400 episode times; add600s and multiply1.25. Only 10000 updates/model allowed; if it cannot fit remaining8h stop. Retain failures and incomplete output; no automatic continuation or rerun.
++Preflight: 60 disposable updates per method, first 30 warmup and last 30 timed, exact checkpoint/EMA reload, full 400-step old smoke task17. Batch32/16/8 in order; only OOM or >4.5GiB PyTorch reserved memory allows smaller batch. Release-only retention fix: temporary checkpoint retained after identity receipt; original run deleted these files, see docs/DEVELOPMENT.md. Forecast all six models, all 600 candidate validation episodes, BC300+DP900 final episodes using full400 episode times; add600s and multiply1.25. Only 10000 updates/model allowed; if it cannot fit remaining8h stop. Retain failures and incomplete output; no automatic continuation or rerun.
+ 
+ Validation tasks40000-40019, common saved physical states, DPoffset0. Choose maximum success, ties earliest update. Freeze all six model hashes, source and data before instantiating final tasks50000-50099. Both ranges must be disjoint from historical task IDs; validation and final initial states must also be disjoint. Test BC one offset0, DPoffset0/1000000/2000000; randomness seed424242+task+offset. Maximum400 steps, official success stops (cube center above table4cm), ordinary errors count failure; OOM/hash violation/timeout stops run. Test once only. No policy/EMA changes during inference.
+ 
+ Report seed/noise outcomes, parameters/training cost/peak memory, complete-episode policy time including visual encoder, camera-inclusive rollout wall time. Bootstrap5000 paired physical-task resamples, seed20261020; interval conditional on fixed models/noise. Old low-dimensional scores are background only, not an isolated visual-input effect or diffusion causal effect. Generate representative videos by restoring saved final states; no added policy rollout. Independent audit must check every raw record, candidate identity/selection and SHA before declaring complete. Successful and failed results are equally valid.
+ 
+-Entry points: ./visual-study prepare --out FRESH_PREP; after visual review set VISUAL_PREP to that absolute path, ./visual-study preflight --reviewed-samples --out FRESH_PREFLIGHT; ./visual-study run --preflight PREFLIGHT --out FRESH_RUN; ./visual-study audit --out RUN. Preparation receipt must explicitly record visual review. Never reuse a partially created directory. Execution logs/timing persist per stage.
++Entry points: ./visual-study prepare --skip-historical-diagnostics --out FRESH_PREP; after visual review set VISUAL_PREP to that absolute path, ./visual-study preflight --reviewed-samples --out FRESH_PREFLIGHT; ./visual-study run --preflight PREFLIGHT --out FRESH_RUN; ./visual-study audit --out RUN. Preparation receipt must explicitly record visual review. Never reuse a partially created directory. Execution logs/timing persist per stage.
++
++Public replication availability: historical raw trajectories are private. Supply --history PATH to repeat diagnostics, or explicitly --skip-historical-diagnostics for data preparation only. The skipped stage is recorded, never represented as completed. This availability option did not participate in the reported experiment. Original task IDs are already consumed; using fixed IDs is replication, not a new unseen evaluation.

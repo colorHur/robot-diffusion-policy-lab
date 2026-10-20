@@ -1,0 +1,38 @@
+{
+  "visual_sha256": "9c2cabb99140ea876c71d475ca8820ab637928a69d2f2dec3d662f0242c95177",
+  "batch": 32,
+  "updates": 10000,
+  "training_seeds": [
+    7,
+    17,
+    27
+  ],
+  "validation_tasks": [
+    40000,
+    40019
+  ],
+  "test_tasks": [
+    50000,
+    50099
+  ],
+  "offsets": [
+    0,
+    1000000,
+    2000000
+  ],
+  "source_sha256": {
+    "scripts/study.py": "a81520ecc684c57bba6cef6dd7dfca279100261435c76fa16f45524d0e515979",
+    "tests/test_visual_study.py": "1e1e7aa739518a35282dc51e52faa1e9d8a797714b8de1a624f42a1eb4691ebb",
+    "scripts/visual_study.py": "93eb144b788d4a591a67019c17bb3e32fea500b45b63dc53f696786d40054d8d",
+    "scripts/visual_prepare.py": "10bec48a1710def74f0f91211f66d06ed8e66385695ab32fabdf1994769daba7",
+    "scripts/visual_audit.py": "0e197653e4af736a8c34e453d75ae0b602c291d724b9ed07d108a8729cfcc80b",
+    "scripts/render_compat.py": "8f174f903567f5a9c544af83532c9e146a2d26406f8af340c76d9d5031adfb6e",
+    "visual-study": "a353b1c95919bf76adcc5367044d98a40c6f71920d5700ecd8c988112f87d66e",
+    "configs/VISUAL-STUDY-PLAN.md": "ca470fabd4d2ee3d979abddb26fad6ff9e91528e0dd9eebb3c325f14adf06f8a",
+    "requirements-lock.txt": "1b7b2f26a40f69b9574089397eff95f4ab6190e7ce050550d7b27aab64c74834"
+  },
+  "dataset_sha256": "9c2cabb99140ea876c71d475ca8820ab637928a69d2f2dec3d662f0242c95177",
+  "source_dataset_sha256": "2067777cb8b532e9263dd09fd6448c41cc31224bb27be4a3b734010ae13eb540",
+  "selection": "max validation success, ties earliest step",
+  "method_scope": "complete official BC versus DP pipelines, not isolated diffusion causal effect"
+}

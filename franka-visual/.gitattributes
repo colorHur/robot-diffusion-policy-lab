@@ -1,0 +1,2 @@
+# Generated unified diffs use a context marker on otherwise blank lines.
+evidence/*.patch -whitespace

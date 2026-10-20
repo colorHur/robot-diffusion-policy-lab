@@ -1,0 +1,79 @@
+{
+  "passed": true,
+  "raw_records_checked": 1800,
+  "unique_test_tasks": 100,
+  "selected_steps": {
+    "bc-7": 8000,
+    "bc-17": 10000,
+    "bc-27": 8000,
+    "diffusion_policy-7": 10000,
+    "diffusion_policy-17": 10000,
+    "diffusion_policy-27": 10000
+  },
+  "success_rates_by_training_seed": {
+    "bc": [
+      0.92,
+      0.87,
+      0.9
+    ],
+    "diffusion_policy": [
+      0.9866666666666666,
+      0.97,
+      0.9433333333333335
+    ]
+  },
+  "noise_success_rates": {
+    "bc": {
+      "7": {
+        "0": 0.92
+      },
+      "17": {
+        "0": 0.87
+      },
+      "27": {
+        "0": 0.9
+      }
+    },
+    "diffusion_policy": {
+      "7": {
+        "0": 0.99,
+        "1000000": 0.98,
+        "2000000": 0.99
+      },
+      "17": {
+        "0": 0.99,
+        "1000000": 0.97,
+        "2000000": 0.95
+      },
+      "27": {
+        "0": 0.93,
+        "1000000": 0.95,
+        "2000000": 0.95
+      }
+    }
+  },
+  "costs": {
+    "bc": {
+      "episodes": 300,
+      "steps": 24864,
+      "policy_seconds": 17.186177397050415,
+      "planning_calls": 24864,
+      "denoiser_evaluations": 0,
+      "errors": 0
+    },
+    "diffusion_policy": {
+      "episodes": 900,
+      "steps": 56137,
+      "policy_seconds": 472.12737035294595,
+      "planning_calls": 7360,
+      "denoiser_evaluations": 73600,
+      "errors": 0
+    }
+  },
+  "paired_interval": [
+    0.03,
+    0.11222222222222225
+  ],
+  "audit_source_sha256": "3977598386a0d2f0b209b98dead9f684860316645226854aeb4734b4ae4f1c2d",
+  "note": "independent arithmetic and artifact audit; not third-party replication"
+}

@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+cd "$(dirname "$0")"
+export MUJOCO_GL=egl NUMBA_CACHE_DIR="$PWD/.cache/numba" XDG_CACHE_HOME="$PWD/.cache" MPLCONFIGDIR="$PWD/.cache/matplotlib" HF_HOME="$PWD/.cache/huggingface" HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+case "${1:-status}" in
+ status) cat runs/acceptance.json ;;
+ probe) shift; exec .venv/bin/python scripts/probe_sim.py "$@" ;;
+ prepare-bc) exec .venv/bin/python scripts/run_bc.py --prepare ;;
+ train-bc) exec .venv/bin/python scripts/run_bc.py ;;
+ preflight|study|audit) command="$1"; shift; exec .venv/bin/python scripts/study.py "$command" "$@" ;;
+ checkpoint-check) exec .venv/bin/python scripts/checkpoint_rollouts.py ;;
+ *) echo 'usage: ./sim {status|probe --out NEW_DIRECTORY|prepare-bc|train-bc|checkpoint-check|preflight|study|audit}'; exit 2 ;;
+esac

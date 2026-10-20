@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "frozen_source_files_verified": 9,
+  "published_source_files_verified": 9,
+  "relative_markdown_links_verified": 18,
+  "public_files_checked": 54,
+  "private_payload_scan_passed": true,
+  "original_experiment_audit_records": 1800,
+  "original_experiment_regression_tests": 11,
+  "release_regression_tests": 14,
+  "release_GPU_training_or_replays": 0,
+  "pilot_retention_fix": "code inspection: remove temporary checkpoint deletion; no extra GPU pilot rerun",
+  "original_result": "BC97.67%,DP98.78%;+1.11points,95%[-0.44,+3.00]; no confirmed advantage",
+  "scope": "publication packaging checks, not independent third-party training replication"
+}

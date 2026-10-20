@@ -1,0 +1,10 @@
+{
+  "script": "analysis/fixed_input_latency.py",
+  "sha256": "534d9e746a1bff92285b12a0030ba8c78b5677b9e20e51f8547040835fa1125d",
+  "purpose": "planning-call cost, not model selection",
+  "task": 17,
+  "warmup_calls": 5,
+  "timed_calls": 50,
+  "must_run_after_study_and_alone_on_GPU": true,
+  "no_environment_steps": true
+}

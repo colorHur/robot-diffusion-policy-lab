@@ -1,0 +1,38 @@
+[
+  {
+    "kind": "bc",
+    "success": true,
+    "available": true,
+    "source_record": "test/bc-7/record-50000-0.json",
+    "video": "media/bc-success.mp4",
+    "frames": 24,
+    "replay": "saved actual policy trajectory; no additional policy rollout"
+  },
+  {
+    "kind": "bc",
+    "success": false,
+    "available": true,
+    "source_record": "test/bc-7/record-50033-0.json",
+    "video": "media/bc-failure.mp4",
+    "frames": 201,
+    "replay": "saved actual policy trajectory; no additional policy rollout"
+  },
+  {
+    "kind": "diffusion_policy",
+    "success": true,
+    "available": true,
+    "source_record": "test/diffusion_policy-7/record-50000-0.json",
+    "video": "media/diffusion_policy-success.mp4",
+    "frames": 21,
+    "replay": "saved actual policy trajectory; no additional policy rollout"
+  },
+  {
+    "kind": "diffusion_policy",
+    "success": false,
+    "available": true,
+    "source_record": "test/diffusion_policy-7/record-50000-1000000.json",
+    "video": "media/diffusion_policy-failure.mp4",
+    "frames": 201,
+    "replay": "saved actual policy trajectory; no additional policy rollout"
+  }
+]
