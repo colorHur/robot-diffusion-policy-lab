@@ -1,14 +1,38 @@
-# Visual reaching: behavior cloning vs action diffusion
+# 机器人模仿学习：行为克隆与动作扩散
 
-A small **simulation-only** robot imitation learning project that runs on a CPU. A two-link planar arm observes a 32×32 RGB view of its arm and target plus joint sine/cosine state. The observation encoder extracts the centroids of two known-color image markers and also runs a small CNN on the full image. An inverse-Jacobian expert supplies demonstrations. Two policies predict four future joint-delta actions from the latest two observations: direct behavior cloning (BC) and an eight-step conditional diffusion model trained with a DDPM loss and sampled with deterministic DDIM. Evaluation executes one or two predicted actions before replanning and reports held-out task success, final distance, and policy latency.
+本项目记录从二维机械臂到三维 Panda Lift 的仿真对照实验，比较行为克隆（BC）与动作扩散。最新阶段使用 RGB 图像和机器人本体状态，已完成训练、独立测试和归档验收。项目尚未连接或部署真机。
 
-This is a bridge from image diffusion to robot action diffusion. It does **not** establish real-robot, ROS, sim-to-real, or contact-rich manipulation experience.
+## 从哪里开始看
 
-For the next implementation stages and learning order, see [ROADMAP.md](ROADMAP.md).
+| 阶段 | 内容与入口 |
+|---|---|
+| 最新：三维视觉对照 | [视觉阶段首页](franka-visual/README.md)、[结果与局限](franka-visual/RESULTS.md)、[开发过程与验收](franka-visual/docs/DEVELOPMENT.md) |
+| 三维低维对照 | [Panda Lift 低维阶段](franka-sim/README.md)，作为历史背景 |
+| 最初：二维入门实验 | 本目录的二维机械臂代码；[二维结果](RESULTS.md)、[原阶段路线图](ROADMAP.md) |
 
-## Run
+视觉阶段的策略输入为 agentview 84×84 RGB 加 9 维机器人本体状态，不包含物体真值。BC 与扩散各有三个训练种子，共用 100 个最终物理任务；BC 成功率 97.67%，扩散 98.78%。差值为 +1.11 个百分点，配对任务的 95% 区间为 [-0.44,+3.00]，不足以确认扩散具有优势。具体条件及统计边界见视觉结果报告。
 
-From this directory with Python, PyTorch, NumPy and Pillow installed:
+三维低维阶段的 BC 为 89.67%、扩散为 96.67%。两阶段使用的最终测试任务不同，不能直接用成功率之差量化视觉输入的影响，也不能把完整方法配置的差异单独归因于扩散机制。
+
+## 为什么放在归档分支
+
+当前分支 `archive/panda-visual-20261021` 保存本轮视觉实验、开发记录和公开证据。旧分支 `archive/panda-lift-20261020` 保留上一轮三维低维归档，`main` 保留原有主线。
+
+这样可以分别追溯各阶段的代码、协议与结果，保留旧版本，避免把已冻结的实验直接覆盖。分支是同一个仓库中的版本线，不是另建一个项目；需要时可以另行审阅并合并。打开仓库默认首页时会看到 main，阅读本轮完整归档请在分支菜单选择 `archive/panda-visual-20261021`，或直接访问[本轮分支首页](https://github.com/colorHur/robot-diffusion-policy-lab/tree/archive/panda-visual-20261021)。
+
+公开仓库提供源码、固定协议、汇总证据、开发过程说明和由保存状态生成的仿真视频。原始数据、模型权重、完整轨迹、私人日志与运行环境仅在本地留存。原始实验源码与发布副本的修复分别记录；发布修复没有参与已报告成绩。已知的预检临时权重留存偏差见[开发与验收记录](franka-visual/docs/DEVELOPMENT.md)。
+
+## 二维机械臂实验说明
+
+以下运行命令仅针对本目录的二维阶段。三维视觉阶段有独立入口和依赖要求，请先阅读[视觉准备与复现说明](franka-visual/docs/REPRODUCING.md)。
+
+二维阶段使用可在 CPU 上运行的双连杆平面机械臂。观测包含机械臂与目标的 32×32 RGB 图像，以及关节角的正弦、余弦。编码器提取两个已知颜色标记的中心，并用一个小型 CNN 编码整幅图像。逆雅可比专家生成演示数据。
+
+两种策略根据最近两次观测预测四个未来关节增量动作：BC 直接预测动作，条件扩散模型使用 DDPM 损失训练、确定性 DDIM 采样，并进行八步去噪。评测每次执行一个或两个预测动作，再观测并重新规划，记录留出任务成功率、最终距离和策略延迟。
+
+### 运行二维阶段
+
+安装 Python、PyTorch、NumPy 和 Pillow 后，在本目录执行：
 
 ```bash
 python -m robot_lab.run data
@@ -18,30 +42,27 @@ python -m robot_lab.run eval
 python -m pytest -q --basetemp .pytest_tmp
 ```
 
-On a CUDA machine, add `--device cuda` to both training and evaluation. Default training uses 2000 optimizer updates per model. Set `--steps` and `--episodes` explicitly when doing a quick smoke run. Default horizons are observation 2, prediction 4, execution 2. To compare replanning frequency, run `python -m robot_lab.run eval --action-horizon 1` and `python -m robot_lab.run eval --action-horizon 2`. Evaluation outputs are saved under `runs/temporal/`. Reproducible aggregate and per-episode results from the measured run are tracked in [results](results/) and explained in [RESULTS.md](RESULTS.md).
+使用 CUDA 时，在训练与评测命令中添加 `--device cuda`。默认每个模型训练 2000 次更新；短暂冒烟检查请显式指定 `--steps` 和 `--episodes`。默认观测长度为 2、预测长度为 4、动作执行长度为 2。
 
-## Experiment contract
+对比重规划频率时分别运行：
 
-- Train episodes use seeds 0–239, validation uses 10000–10039, and default test uses 20000–20029. Splits have no trajectory overlap.
-- Both models see the same observations and expert action chunks. Their architectures differ by policy head; both use the same visual encoder design.
-- The target is visible in the image. The expert uses target coordinates to generate labels; policy inputs contain no target coordinates.
-- Samples never cross episode boundaries. Missing past observations repeat the first frame, while missing future actions are masked out of both losses.
-- Evaluation executes the requested number of actions from each predicted chunk, then observes again and replans.
-- The simulation has a kinematic arm without collisions, obstacles, cameras, or physical contact. It is intended for studying data, action sequences, and closed-loop evaluation.
-- Report success rates with the episode count and preferably several training seeds. A single small run is only a smoke test.
+```bash
+python -m robot_lab.run eval --action-horizon 1
+python -m robot_lab.run eval --action-horizon 2
+```
 
-The sequence interface follows the observation, prediction, and action horizon design of [Diffusion Policy](https://github.com/real-stanford/diffusion_policy). This compact implementation is for learning and does not claim benchmark parity.
+评测输出保存在 `runs/temporal/`。已记录的汇总及逐 episode 结果见 [results/](results/) 和[二维结果说明](RESULTS.md)。
 
-## Suggested next extension
+### 二维实验约定与局限
 
-After verifying the full experiment, move to a standard manipulation benchmark such as PushT or a LeRobot dataset. Keep the BC comparison and held-out closed-loop evaluation. This project deliberately starts with a dependency-light simulator so the methodology can be checked on a CPU before moving to a heavier benchmark.
+- 训练 episode 使用种子 0–239，验证使用 10000–10039，默认测试使用 20000–20029；不同划分没有轨迹重叠。
+- 两种模型使用相同观测和专家动作片段，以及相同视觉编码器设计，策略预测部分不同。
+- 目标在图像中可见。专家用目标坐标生成标签，策略输入不含目标坐标。
+- 采样不跨 episode 边界。缺失的过去观测重复首帧；缺失的未来动作在两种损失中均被掩码排除。
+- 每次执行指定数量的预测动作，随后重新观测和规划。
+- 二维环境为运动学模拟，不包含碰撞、障碍物、真实相机或物理接触，适合检查数据、动作序列和闭环评测流程。
+- 成功率需要同时说明任务数量，尽可能报告多个训练种子；一次小规模运行只能作为冒烟检查。
 
+序列接口参考 [Diffusion Policy](https://github.com/real-stanford/diffusion_policy) 的观测、预测与执行长度设计。本项目不声称达到该论文基准，也不据此宣称具备真机、ROS、仿真到现实或复杂接触操作经验。
 
-
-## 三维Panda Lift阶段归档（2026-10-20）
-
-[franka-sim/](franka-sim/README.md)包含独立三维仿真实验源码、固定协议、结果、生成视频与后续学习记录。BC89.67%、动作扩散96.67%，100个共同测试任务；详情及局限见该目录。此分支仅新增本轮三维归档，未将其他本地二维未提交实验批量上传。
-
-## 视觉Panda Lift阶段归档（2026-10-21）
-
-[franka-visual/](franka-visual/README.md)为RGB＋9维本体输入的独立视觉阶段。BC97.67%、扩散98.78%；差1.11个百分点、95%区间[-0.44,+3.00]，不足以确认优势。原低维[franka-sim/](franka-sim/README.md)完整保留；两轮最终任务不同，不能直接归因图像增益。开发过程、原始冻结源码和发布修复分开留证。
+项目完善与个人掌握是两件事。当前已完成项目归档；用户之后手动学习，本阶段不安排个人能力验收。
